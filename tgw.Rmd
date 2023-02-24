@@ -10,22 +10,17 @@ output:
 
 
 ## Code enforcement complaints mapped.
+What follows is an R code snippet that can be stepped through with C-c C-n in emacs, or in the equivalent way in RStudio
+The code evaluation instructions in the R chunck headers are explained at https://yihui.org/knitr/options/#code-evaluation
+We start with settings and loading libraries. The commented URLs are references for how we did things in the code.
+
 ```{r, "libraries",  echo=FALSE, message=FALSE }
-##https://yihui.org/knitr/options/#code-evaluation
-# The palette with black:
+## We select an accessible color pallate with black:
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 names(cbbPalette) <- c("black","orange","sky","green","yellow","blue","red","pink")
-##https://github.com/walkerke/umich-workshop-2022
 
-## https://permits.harrisonburgva.gov/
-## https://rpubs.com/nickbearman/r-google-map-making
-## https://ajsmit.github.io/Intro_R_Official/mapping-google.html
 
-## https://www.gpsvisualizer.com/geocoding.html
-## https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=560%20Norwood%20St%20Harrisonburg%20Virginia&benchmark=4
-
-#https://stackoverflow.com/questions/4090169/elegant-way-to-check-for-missing-packages-and-install-them
-
+## https://stackoverflow.com/questions/4090169/elegant-way-to-check-for-missing-packages-and-install-them
 r = getOption("repos") 
 r["CRAN"] = "http://lib.stat.cmu.edu/R/CRAN/" 
 options(repos = r)
@@ -46,14 +41,16 @@ using(libs)
 ```
 
 
+Next, we read in and clean the tall grass and weed complaints exported manually from the [Harrisonburg permitting website](https://permits.harrisonburgva.gov/) advanced search interface.
 
 ```{r, setup,  echo=FALSE, message=FALSE, cache=TRUE }
 
-
+## making sure the share volume is mounted if working in the office
 if(system("whoami", intern=TRUE)=="lchen")
     setwd("/Users/lchen/shared/yard") else{
                                           system("mount_smbfs lchen@172.16.0.7/share /Volumes/share")
                                           setwd("/Volumes/shared/yard")}
+## Reading in the files
 to418 <- read.csv("tgw/2022/exports/to418.csv")
 to1018 <- read.csv("tgw/2022/exports/to1018.csv")
 to1619 <- read.csv("tgw/2022/exports/to1619.csv")
@@ -80,8 +77,15 @@ code <- rbind(to418,
       to1222)
 code <- code[!duplicated(code),]
 
+## Cleaining the raw data
 drops <- c("IsDeleted","TotalFees","UnpaidFees","Value","CouncilDistrict","Next.Compliance.Date","CanPayFees","UserFavID","UserID","FavType","FavID","IsActive","IsDeleted1","ContactID","CanEdit","CanView","CanRenew","NeedAccept","Next.Hearing.Date","Last.Hearing.Date","LU_JurisdictionID","IsPublic","PubicDocCount","IsLockedExt", "IsLockedInt","Fav")
 code <- code[, !(names(code) %in% drops)]
+
+## We need to fix various errors in the data. This includes geocoding
+## from addresses using https://www.gpsvisualizer.com/geocoding.html
+## and
+## https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=560%20Norwood%20St%20Harrisonburg%20Virginia&benchmark=4
+
 code[code$Location=="1552 Old Richmond Cir","Location"] <- "1252 Old Richmond Cir" 
 code[code$Location=="1556 Old Richmond Cir","Location"] <- "1256 Old Richmond Cir"
 code[code$Location=="0 Star Crest Dr","Location"] <- "1080 Starcrest Dr"
@@ -94,6 +98,11 @@ code[code$Location=="371 W Water St -Apt B", c("YWGS84","XWGS84")] <- c(38.44933
 code[1129,c("YWGS84","XWGS84")] <- c(38.445681504207094, -78.87579007681562)
 
 missings <- unique(c(code[code$XWGS84> -20|code$XWGS84< -1000, "Location" ],code[code$YWGS84> 2000|code$YWGS84< 30, "Location"]))
+
+
+## Some of these coordinates have the final digit of precision
+## truncated because we used C-x r k to do a rectangular select in
+## emacs. We should probably fix this.
 
 code[code$Location==missings[1]  ,c("XWGS84")] <- -78.86329722699998
 code[code$Location==missings[2]  ,c("XWGS84")] <- -78.85689034099994
@@ -145,22 +154,26 @@ code[code$Status=="","Status"] <- "No Status"
 code[code$Status=="2nd Notice - Tall Weeds and Grass", "Status"] <- "2nd Notice - TGW"
 code[code$Guid== "a4571e39-ab32-4e00-908b-da17f1237d60","Status"] <- "No Violations Found"
 
+## Virginia FOIA law doesn't protect the names of people who make
+## aesthetic nuisance complaints, but zoning inspectors are instructed
+## to proactively mark such complaints as anonymous and withold their
+## names. Building Code inspectors, on the other hand, make a note of
+## the full name of tenants who make a building code complaint about
+## a landlord. We proactively protect the identity of those tenants.
 
 privacy <-c(1799,1794,1740,1741,1731,1718,1717,1692,1651,1634,1611,1593,1584,1583,1580,1560,1540,1537,1526,1523,1501,1431,1317,1258,1237,1195,1193,1189,1181,1180,1175,1167,1162,1149,1150,1143,1140,1139,1123,1107,1084,1082,1077,1063,1036,1030,1029,1026,1022,1018,1017,1016,1015,1014,998,993,989,975,969,965,957,955,951,935,922,917,916,892,893,884,883,877,871,870,869,867,864,862,860,859,848,845,841,819,762,728,724,718,705,704,703,701,693,692,668,666,636,630,628,584,551,531,487,467,465,455,450,407,391,390,375,287,281,236,234,224,211,199,196,176,166,132,122,47,46,27,7,1797,1775)
 
-#tenants <- code %>% grep("tenant", "Descr", ignore.case= TRUE, value=FALSE) 
 tenants <- grep("tenant",code$Descr, ignore.case=TRUE, value=FALSE)
 privacy <- unique(c(tenants,privacy))
 code[privacy,"Descr"] <- unlist(lapply(code[privacy,"Descr"], gsub, pattern="[0-9]+?", replacement="x"))
 code <- code %>% filter( Guid!="661f722c-936e-4bd1-a974-eb37663b0a45"& Guid!="11b32ee3-b20f-49fa-87ac-621f9e00ab30")
 ```
+
+We next read in historical tall grass and weed complaints which were
+collected prior to the Department of Community Development switching
+to its current data system, and clean the data so it can be merged.
+
 ```{r, early tgw, echo=FALSE, message=FALSE, cache=FALSE}
-
-## if(system("whoami", intern=TRUE)=="lchen")
-##     setwd("/Users/lchen/Sites/yard") else{
-##                                           system("mount_smbfs lchen@172.16.0.7/share /Volumes/share")
-##                                           setwd("/Volumes/shared/Sites/yard")}
-
 tgwraw13 <- read.csv("tgwraw13.csv")
 geocoded12 <- read.csv("addresses.csv")
 geocoded13 <- read.csv("addresses13.csv")
@@ -178,12 +191,8 @@ tgw12$X <- tgwdate12
 colnames(tgw12)[1] <- "tgwdate"
 tgw12 <- cbind(tgw12,tgw12$Comments)
 colnames(tgw12)[19] <- "tgwfull$Comments"
-###-
+
 earlytgw <- cbind(tgwdate,tgwfull,tgwfull$Comments)
-
-## earlytgw <- rbind(tgw12[,c(colnames(tgw12)[-match("Source.of.Concern",colnames(tgw12))],"Source.of.Concern")],
-
-##                   earlytgw[,c(colnames(earlytgw)[-match("Source.of.Concern",colnames(earlytgw))],"Source.of.Concern")])
 earlytgw <- bind_rows(tgw12,earlytgw)
 
 names(earlytgw)[match("tgwfull$Comments",colnames(earlytgw))] <- "type"
@@ -236,6 +245,11 @@ names(earlytgw)[names(earlytgw)=="latitude"] <- "YWGS84"
 names(earlytgw)[names(earlytgw)=="longitude"] <- "XWGS84"
 ocode <- code[code$XWGS84!=-1,]#come back to this.
 ```
+
+We next load demographic data and shape files [that we learned to pull from the Census Bureau](https://github.com/walkerke/umich-workshop-2022). 
+Other sources include plotting [using google maps](https://rpubs.com/nickbearman/r-google-map-making) and [open street maps](https://ajsmit.github.io/Intro_R_Official/mapping-google.html).
+
+
 ```{r, demographicfs, eval=TRUE, echo=FALSE, message=FALSE}
 if(system("whoami", intern=TRUE)=="lchen"){tigris_cache_dir("/Users/lchen/shared/yard/tigris/")} else{
  tigris_cache_dir("/Volumes/shared/yard/tigris/") }
@@ -251,6 +265,9 @@ tract_grass_sf <- filter(burgraceall2020, variable=="P1_003N")%>% mutate(wite=va
 
 ```
 
+We transform the spatial coordinates so features line up correctly [using the simple features package]( https://r-spatial.github.io/sf/articles/sf5.html). 
+We then use [Jonathan Duggins' tutorial](https://jonathanduggins.com/data-matters) for tidyverse functions such as filter.
+
 ```{r, spatial, echo=FALSE, message=FALSE}
  
 if(system("whoami", intern=TRUE)=="lchen")
@@ -259,18 +276,18 @@ if(system("whoami", intern=TRUE)=="lchen")
                                           setwd("/Volumes/shared/yard")}
 
 crs_utm <- st_crs(burgraceall2020)
-
 code_sp <- st_as_sf(code, coords = c("XWGS84", "YWGS84"), crs = crs_utm )
 earlytgw_sp <- st_as_sf(earlytgw, coords = c("XWGS84", "YWGS84"), crs = crs_utm )
-##https://jonathanduggins.com/data-matters (R slides)
+
 code_pz_sp <- filter(code_sp,Division=="P&Z") 
-#https://r-spatial.github.io/sf/articles/sf5.html
 code_pz_nuisance_sp <- filter(code_pz_sp, TypeName %in% c("Junk, Trash and Debris","Tall Grass and Weeds","Inoperable Vehicle","Signage"))
 code_pz_nuisance_sp <- bind_rows(code_pz_nuisance_sp, earlytgw_sp)
 code_pz_nuisance_sp <- within(code_pz_nuisance_sp, TypeName <-factor(TypeName, levels=names(sort(table(TypeName),decreasing=TRUE))))
 code_pz_nuisance_sp <- within(code_pz_nuisance_sp, Status <-factor(Status, levels=names(sort(table(Status),decreasing=TRUE))))
 
 ```
+
+We next load icon fonts for plotting features onto our maps.
 
 ```{r, icons, echo=FALSE, message=FALSE }
 
@@ -289,15 +306,12 @@ trash_can <- tmap_icons("trash-can.png", height=12)
 couch <- tmap_icons("couch.png", height=12)
 
 ```
+More data cleaning to establish uniform violation variables. 
 ```{r, violation partitioning,  echo=FALSE, message=FALSE}
-##code_pz_nuisance_sp <- code_pz_nuisance_sp %>% filter(FilingDate > as.Date("2021-9-12"))
 grass <- code_pz_nuisance_sp %>% filter(TypeName=="Tall Grass and Weeds"&!Status%in% c("No Violations Found","No Status","Inspection"))
-
 nograss <- code_pz_nuisance_sp %>% filter(TypeName=="Tall Grass and Weeds"&Status%in% c("No Violations Found","No Status","Inspection"))
-
 junk <- code_pz_nuisance_sp %>% filter(TypeName=="Junk, Trash and Debris")
 couches <- junk[unlist(lapply(junk$Descr, str_detect, "ouch|urni|hair")),]
-
 jnk <- junk[!unlist(lapply(junk$Descr, str_detect, "ouch|urni|hair")),]
 nojnk <- jnk %>% filter(Status%in%c("No Violations Found","No Status","Inspection"))
 jnk <- jnk %>% filter(!Status%in%c("No Violations Found","No Status","Inspection"))
@@ -305,6 +319,7 @@ cars <- code_pz_nuisance_sp %>% filter(TypeName=="Inoperable Vehicle")
 
 ```
 
+We create the main map with the tmap package.
 ```{r, 'main map setup', eval = TRUE, echo=FALSE, message=FALSE}
 tmap_mode("view")
 demographic <- tm_shape(tract_grass_sf, name="Percent Non-Latino White") +
@@ -321,11 +336,10 @@ demographic <- tm_shape(tract_grass_sf, name="Percent Non-Latino White") +
     tm_borders(col = "darkgray", lwd = 0.7)
 
 ```
-```{r, 'main map', echo=FALSE, message=FALSE , eval=TRUE}
-## fontawesome::fa_png("trash-can", fill=cbbPalette["yellow"])
-## to do as grassdot <- as_dot_density(value=) follow https://youtu.be/KMOTZij9qhU?t=9770 and tgw.R for tabling and left joining counts to polygons. 
 
-###tmap_mode("view")
+We add features with jitter to protect the privacy of people who have been targeted by complaints. To do as grassdot <- as_dot_density(value=) follow https://youtu.be/KMOTZij9qhU?t=9770 and tgw.R for tabling and left joining counts to polygons.  This video is also how you can use parcel shape files in the real estate information system to connect iNatuaralist coordinates to to addresses.
+
+```{r, 'main map', echo=FALSE, message=FALSE , eval=TRUE}
 
 grassmap <- demographic +
     tm_shape(grass, name="Tall Grass and Weed")+
@@ -351,8 +365,8 @@ grassmap+ggtitle("Harrisonburg Aesthetic Nuisance Complaints", subtitle="Complai
 ```
 
 ```{r, code analysis, echo=FALSE, message=FALSE}
-tgw <- code_pz_nuisance_sp
 
+tgw <- code_pz_nuisance_sp
 tgw <- within(tgw, TypeName <-factor(TypeName, levels=names(sort(table(TypeName),decreasing=FALSE))))
 
 ```
