@@ -1,26 +1,26 @@
 
 # Table of Contents
 
-1.  [Natural Yard Project](#orgc2b89b2)
-    1.  [Resources](#org0a8096f)
-        1.  [Emacs text editor](#orgedde5d9)
-        2.  [Revision control](#org3f8768a)
-    2.  [Data Lists](#orgcd363e7)
-    3.  [Code](#org0657c56)
-    4.  [Theory](#org00d056b)
+1.  [Natural Yard Project](#org1213299)
+    1.  [Resources](#org1852bf2)
+        1.  [Emacs text editor](#org7af1af8)
+        2.  [Revision control](#org131cda6)
+    2.  [Data Lists](#org236fa5c)
+    3.  [Code](#orgf70b006)
+    4.  [Theory](#orgd7def74)
 
 
-<a id="orgc2b89b2"></a>
+<a id="org1213299"></a>
 
 # Natural Yard Project
 
 
-<a id="org0a8096f"></a>
+<a id="org1852bf2"></a>
 
 ## Resources
 
 
-<a id="orgedde5d9"></a>
+<a id="org7af1af8"></a>
 
 ### Emacs text editor
 
@@ -33,7 +33,7 @@ How powerful Emacs can get:
 <https://www.youtube.com/watch?v=6ZWp05OW1c0>
 
 
-<a id="org3f8768a"></a>
+<a id="org131cda6"></a>
 
 ### Revision control
 
@@ -92,25 +92,25 @@ GitHub](https://github.com/)
         git clone https://github.com/statlive/natural-yard.git
 
 
-<a id="orgcd363e7"></a>
+<a id="org236fa5c"></a>
 
 ## Data Lists
 
 [Harrisonburg Permit Site](https://permits.harrisonburgva.gov/default.aspx)
 
-[Harrisonburg Geogrophic Information System](https://www.harrisonburgva.gov/GIS)
-[
-iNaturalist](https://www.inaturalist.org/)
+[Harrisonburg Geographic Information System](https://www.harrisonburgva.gov/GIS)
+
+[iNaturalist](https://www.inaturalist.org/)
 
 
-<a id="org0657c56"></a>
+<a id="orgf70b006"></a>
 
 ## Code
 
 Most of the commands and sources needed for working with the three lsts can be found in <./tgw.Rmd>
 
 
-<a id="org00d056b"></a>
+<a id="orgd7def74"></a>
 
 ## Theory
 
