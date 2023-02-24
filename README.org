@@ -1,0 +1,85 @@
+* Natural Yard Project
+
+** Resources
+*** Emacs text editor
+[[https://www.gnu.org/software/emacs/][GNU Emacs]]
+
+How powerful Emacs can get: 
+
+https://www.youtube.com/watch?v=lkIicfzPBys&ab_channel=SteveYegge
+
+https://www.youtube.com/watch?v=6ZWp05OW1c0
+
+*** Revision control
+[[https://git-scm.com/docs/gittutorial][
+Git Revision Control]]
+[[https://github.com/][
+GitHub]]
+
+**** Setting up and checking out the natural-yard repository
+
+After creating a GitHub account, statlive, we created a new project, natural-yard. Start by clicking the green "New" button in the root level of your GitHub account.
+[[./gitcreate.png]]
+
+On our local computer we prepared the directory, building on the github instructions for creating a new repository on the command line.
+
+#+begin_src
+  ~/shared/yardproject $ git init
+Reinitialized existing Git repository in /Users/lchen/shared/yardproject/.git/
+~/shared/yardproject $ git add README.md ApplicantInformationDatabase.csv gitcreate.png inaturalist-265817.csv tgw tgw.Rmd 
+~/shared/yardproject $ git commit -m "initial commit"
+[trunk (root-commit) 054dd72] initial commit
+ 18 files changed, 23385 insertions(+)
+ create mode 100644 ApplicantInformationDatabase.csv
+ create mode 100644 README.md
+ create mode 100644 gitcreate.png
+ create mode 100644 inaturalist-265817.csv
+ create mode 100644 tgw.Rmd
+ create mode 100644 tgw/2022/exports/Export.csv
+ create mode 100644 tgw/2022/exports/to1018.csv
+ create mode 100644 tgw/2022/exports/to1112.csv
+ create mode 100644 tgw/2022/exports/to1121.csv
+ create mode 100644 tgw/2022/exports/to1222.csv
+ create mode 100644 tgw/2022/exports/to1619.csv
+ create mode 100644 tgw/2022/exports/to418.csv
+ create mode 100644 tgw/2022/exports/to520.csv
+ create mode 100644 tgw/2022/exports/to522.csv
+ create mode 100644 tgw/2022/exports/to621.csv
+ create mode 100644 tgw/2022/exports/to722.csv
+ create mode 100644 tgw/2022/exports/to919.csv
+ create mode 100644 tgw/2022/exports/to922.csv
+~/shared/yardproject $ git branch -M main
+~/shared/yardproject $ git remote add origin git@github.com:statlive/natural-yard.git
+~/shared/yardproject $ git push -u origin main
+Enumerating objects: 23, done.
+Counting objects: 100% (23/23), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (21/21), done.
+Writing objects: 100% (23/23), 1.79 MiB | 2.58 MiB/s, done.
+Total 23 (delta 3), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (3/3), done.        
+To github:statlive/natural-yard.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+#+end_src
+
+You can now check out the repository with the command
+
+#+begin_src 
+git clone https://github.com/statlive/natural-yard.git
+#+end_src
+
+** Data Lists
+
+[[https://permits.harrisonburgva.gov/default.aspx][Harrisonburg Permit Site]]
+
+[[https://www.harrisonburgva.gov/GIS][Harrisonburg Geogrophic Information System]]
+[[https://www.inaturalist.org/][
+iNaturalist]]
+
+** Code
+
+Most of the commands and sources needed for working with the three lsts can be found in [[./tgw.Rmd]]
+
+** Theory
+
