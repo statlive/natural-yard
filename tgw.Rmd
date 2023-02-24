@@ -1,0 +1,433 @@
+---
+title: "Tall Grass and Weed Statistics"
+author: "Harrisonburg"
+date: "Sat Sep  3 05:08:12 2022"
+output: 
+ html_document:
+  theme: cosmo
+
+---
+
+
+## Code enforcement complaints mapped.
+```{r, "libraries",  echo=FALSE, message=FALSE }
+##https://yihui.org/knitr/options/#code-evaluation
+# The palette with black:
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+names(cbbPalette) <- c("black","orange","sky","green","yellow","blue","red","pink")
+##https://github.com/walkerke/umich-workshop-2022
+
+## https://permits.harrisonburgva.gov/
+## https://rpubs.com/nickbearman/r-google-map-making
+## https://ajsmit.github.io/Intro_R_Official/mapping-google.html
+
+## https://www.gpsvisualizer.com/geocoding.html
+## https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=560%20Norwood%20St%20Harrisonburg%20Virginia&benchmark=4
+
+#https://stackoverflow.com/questions/4090169/elegant-way-to-check-for-missing-packages-and-install-them
+
+r = getOption("repos") 
+r["CRAN"] = "http://lib.stat.cmu.edu/R/CRAN/" 
+options(repos = r)
+rm(r)
+
+using <- function(...) {
+    libs<-unlist(list(...))
+    req<-unlist(lapply(libs,require,character.only=TRUE))
+    need<-libs[req==FALSE]
+    if(length(need)>0){ 
+        install.packages(need)
+        lapply(need,require,character.only=TRUE)
+    }
+}
+
+libs <- c("Hmisc","tidyverse","dplyr","clock","tigris","ClusterR","cluster","ggmap","ggplot2","rvest","showtext","sp","sf","tidycensus","tmap","icons","fontawesome")
+using(libs)
+```
+
+
+
+```{r, setup,  echo=FALSE, message=FALSE, cache=TRUE }
+
+
+if(system("whoami", intern=TRUE)=="lchen")
+    setwd("/Users/lchen/shared/yard") else{
+                                          system("mount_smbfs lchen@172.16.0.7/share /Volumes/share")
+                                          setwd("/Volumes/shared/yard")}
+to418 <- read.csv("tgw/2022/exports/to418.csv")
+to1018 <- read.csv("tgw/2022/exports/to1018.csv")
+to1619 <- read.csv("tgw/2022/exports/to1619.csv")
+to919 <- read.csv("tgw/2022/exports/to919.csv")
+to919 <- read.csv("tgw/2022/exports/to919.csv")
+to520 <- read.csv("tgw/2022/exports/to520.csv")
+to621 <- read.csv("tgw/2022/exports/to621.csv")
+to1121 <- read.csv("tgw/2022/exports/to1121.csv")
+to522 <- read.csv("tgw/2022/exports/to522.csv")
+to722 <- read.csv("tgw/2022/exports/to722.csv")
+to922 <- read.csv( "tgw/2022/exports/to922.csv")
+to1222 <- read.csv("tgw/2022/exports/to1222.csv")
+code <- rbind(to418,
+      to1018,
+      to1619,
+      to919,
+      to919,
+      to520,
+      to621,
+      to1121,
+      to522,
+      to722,
+      to922,
+      to1222)
+code <- code[!duplicated(code),]
+
+drops <- c("IsDeleted","TotalFees","UnpaidFees","Value","CouncilDistrict","Next.Compliance.Date","CanPayFees","UserFavID","UserID","FavType","FavID","IsActive","IsDeleted1","ContactID","CanEdit","CanView","CanRenew","NeedAccept","Next.Hearing.Date","Last.Hearing.Date","LU_JurisdictionID","IsPublic","PubicDocCount","IsLockedExt", "IsLockedInt","Fav")
+code <- code[, !(names(code) %in% drops)]
+code[code$Location=="1552 Old Richmond Cir","Location"] <- "1252 Old Richmond Cir" 
+code[code$Location=="1556 Old Richmond Cir","Location"] <- "1256 Old Richmond Cir"
+code[code$Location=="0 Star Crest Dr","Location"] <- "1080 Starcrest Dr"
+code[code$Location=="901 S High Street","Location"] <- "205 Sunrise Ave"
+code[code$Location=="205 Sunrise Ave", c("YWGS84","XWGS84")] <- c(38.441041699270514, -78.88489286387966)
+code[code$Location=="66 Pleasant Hill rd, 60 Pleasant Hill Rd","Location"] <- "66 Pleasant Hill Rd"
+code[code$Location=="66 Pleasant Hill Rd", c("YWGS84","XWGS84")] <- c(38.428048249736136, -78.89348158194454)
+code[code$Location=="1083 Lois Lane", c("YWGS84","XWGS84")] <- c(38.4165629683439, -78.87282929749068)
+code[code$Location=="371 W Water St -Apt B", c("YWGS84","XWGS84")] <- c(38.449331296072266 ,-78.87555135613829)
+code[1129,c("YWGS84","XWGS84")] <- c(38.445681504207094, -78.87579007681562)
+
+missings <- unique(c(code[code$XWGS84> -20|code$XWGS84< -1000, "Location" ],code[code$YWGS84> 2000|code$YWGS84< 30, "Location"]))
+
+code[code$Location==missings[1]  ,c("XWGS84")] <- -78.86329722699998
+code[code$Location==missings[2]  ,c("XWGS84")] <- -78.85689034099994
+code[code$Location==missings[3]  ,c("XWGS84")] <- -78.86860535299996
+code[code$Location==missings[4]  ,c("XWGS84")] <- -78.89740181099995
+code[code$Location==missings[5]  ,c("XWGS84")] <- -78.85792131799997
+code[code$Location==missings[6]  ,c("XWGS84")] <- -78.85720977999995
+code[code$Location==missings[7]  ,c("XWGS84")] <- -78.86409398899997
+code[code$Location==missings[8]  ,c("XWGS84")] <- -78.85405233399996
+code[code$Location==missings[9]  ,c("XWGS84")] <- -78.87034136799997
+code[code$Location==missings[10]  ,c("XWGS84")] <- -78.84623136199997
+code[code$Location==missings[11]  ,c("XWGS84")] <- -78.85982703299999
+code[code$Location==missings[12]  ,c("XWGS84")] <- -78.85703166499997
+code[code$Location==missings[13]  ,c("XWGS84")] <- -78.85408945199998
+code[code$Location==missings[14]  ,c("XWGS84")] <- -78.86749465599996
+code[code$Location==missings[15]  ,c("XWGS84")] <- -78.86590031799994
+code[code$Location==missings[16]  ,c("XWGS84")] <- -78.86904349499997
+code[code$Location==missings[17]  ,c("XWGS84")] <- -78.86708798299998
+code[code$Location==missings[18]  ,c("XWGS84")] <- -78.84802488399998
+code[code$Location==missings[19]  ,c("XWGS84")] <- -78.88383759299995
+code[code$Location==missings[20]  ,c("XWGS84")] <- -78.85106121699994
+code[code$Location==missings[21]  ,c("XWGS84")] <- -78.85103213899998
+code[code$Location==missings[22]  ,c("XWGS84")] <- -78.85100305999998
+code[code$Location==missings[23]  ,c("XWGS84")] <- -78.85097249099994
+code[code$Location==missings[1]  ,c("YWGS84")] <- 38.45395613300008
+code[code$Location==missings[2]  ,c("YWGS84")] <- 38.44490151800005
+code[code$Location==missings[3]  ,c("YWGS84")] <- 38.44351018100008
+code[code$Location==missings[4]  ,c("YWGS84")] <- 38.43486111000004
+code[code$Location==missings[5]  ,c("YWGS84")] <- 38.44475642100008
+code[code$Location==missings[6]  ,c("YWGS84")] <- 38.44486554200006
+code[code$Location==missings[7]  ,c("YWGS84")] <- 38.44107083600005
+code[code$Location==missings[8]  ,c("YWGS84")] <- 38.43851355400005
+code[code$Location==missings[9]  ,c("YWGS84")] <- 38.45439405000007
+code[code$Location==missings[10]  ,c("YWGS84")] <-38.43408279400006
+code[code$Location==missings[11]  ,c("YWGS84")] <-38.44930966600003
+code[code$Location==missings[12]  ,c("YWGS84")] <-38.44295990600005
+code[code$Location==missings[13]  ,c("YWGS84")] <-38.42154672500004
+code[code$Location==missings[14]  ,c("YWGS84")] <-38.44512364500008
+code[code$Location==missings[15]  ,c("YWGS84")] <-38.45973579700006
+code[code$Location==missings[16]  ,c("YWGS84")] <-38.44763803900002
+code[code$Location==missings[17]  ,c("YWGS84")] <-38.44506554800006
+code[code$Location==missings[18]  ,c("YWGS84")] <-38.44624103700005
+code[code$Location==missings[19]  ,c("YWGS84")] <-38.45194733000005
+code[code$Location==missings[20]  ,c("YWGS84")] <-38.45884121100005
+code[code$Location==missings[21]  ,c("YWGS84")] <-38.45880061000002
+code[code$Location==missings[22]  ,c("YWGS84")] <-38.45876001000005
+code[code$Location==missings[23]  ,c("YWGS84")] <-38.45872046200003
+code[code$Status=="","Status"] <- "No Status"
+code[code$Status=="2nd Notice - Tall Weeds and Grass", "Status"] <- "2nd Notice - TGW"
+code[code$Guid== "a4571e39-ab32-4e00-908b-da17f1237d60","Status"] <- "No Violations Found"
+
+
+privacy <-c(1799,1794,1740,1741,1731,1718,1717,1692,1651,1634,1611,1593,1584,1583,1580,1560,1540,1537,1526,1523,1501,1431,1317,1258,1237,1195,1193,1189,1181,1180,1175,1167,1162,1149,1150,1143,1140,1139,1123,1107,1084,1082,1077,1063,1036,1030,1029,1026,1022,1018,1017,1016,1015,1014,998,993,989,975,969,965,957,955,951,935,922,917,916,892,893,884,883,877,871,870,869,867,864,862,860,859,848,845,841,819,762,728,724,718,705,704,703,701,693,692,668,666,636,630,628,584,551,531,487,467,465,455,450,407,391,390,375,287,281,236,234,224,211,199,196,176,166,132,122,47,46,27,7,1797,1775)
+
+#tenants <- code %>% grep("tenant", "Descr", ignore.case= TRUE, value=FALSE) 
+tenants <- grep("tenant",code$Descr, ignore.case=TRUE, value=FALSE)
+privacy <- unique(c(tenants,privacy))
+code[privacy,"Descr"] <- unlist(lapply(code[privacy,"Descr"], gsub, pattern="[0-9]+?", replacement="x"))
+code <- code %>% filter( Guid!="661f722c-936e-4bd1-a974-eb37663b0a45"& Guid!="11b32ee3-b20f-49fa-87ac-621f9e00ab30")
+```
+```{r, early tgw, echo=FALSE, message=FALSE, cache=FALSE}
+
+## if(system("whoami", intern=TRUE)=="lchen")
+##     setwd("/Users/lchen/Sites/yard") else{
+##                                           system("mount_smbfs lchen@172.16.0.7/share /Volumes/share")
+##                                           setwd("/Volumes/shared/Sites/yard")}
+
+tgwraw13 <- read.csv("tgwraw13.csv")
+geocoded12 <- read.csv("addresses.csv")
+geocoded13 <- read.csv("addresses13.csv")
+tgwfull <- cbind(tgwraw13,geocoded13)
+tgwfull <- tgwfull[tgwfull$Source=="citizen concern",]
+tgw12 <- read.csv("tgw2.csv")
+tgw12 <- cbind(tgw12,"unknown")
+colnames(tgw12)[dim(tgw12)[2]] <- "Source.of.Concern"
+levels(tgw12$Source.of.Concern) <- c("unknown","proactive")
+tgw12$Source.of.Concern[c(130:133,122,120,114,115)] <- "proactive"
+tgwdate12 <- as.Date(tgw12$Date.Received)
+tgwdate <- as.Date(tgwfull$Date.Received,"%m-%d-%Y")
+
+tgw12$X <- tgwdate12
+colnames(tgw12)[1] <- "tgwdate"
+tgw12 <- cbind(tgw12,tgw12$Comments)
+colnames(tgw12)[19] <- "tgwfull$Comments"
+###-
+earlytgw <- cbind(tgwdate,tgwfull,tgwfull$Comments)
+
+## earlytgw <- rbind(tgw12[,c(colnames(tgw12)[-match("Source.of.Concern",colnames(tgw12))],"Source.of.Concern")],
+
+##                   earlytgw[,c(colnames(earlytgw)[-match("Source.of.Concern",colnames(earlytgw))],"Source.of.Concern")])
+earlytgw <- bind_rows(tgw12,earlytgw)
+
+names(earlytgw)[match("tgwfull$Comments",colnames(earlytgw))] <- "type"
+names(earlytgw)[match("Violation.Status.Open.Closed",colnames(earlytgw))] <- "Status"
+##earlytgw <- bind_rows(earlytgw,tgw12)
+earlytgw$TypeName <- "Tall Grass and Weeds"
+earlytgw$type <- earlytgw$Comments
+earlytgw$type <- as.factor(earlytgw$type)
+levels(earlytgw$type)[grep("[mb]ul[tp][it][pi]le", levels(earlytgw$type))] <- "group"
+levels(earlytgw$type)[grep("unk", levels(earlytgw$type))] <- "junk"
+levels(earlytgw$type)[grep("inop", levels(earlytgw$type))] <- "junk"
+levels(earlytgw$type)[grep("oreclo", levels(earlytgw$type))] <- "foreclosure"
+levels(earlytgw$type)[grep("bank owned", levels(earlytgw$type))] <- "foreclosure"
+levels(earlytgw$type)[grep("asset company", levels(earlytgw$type))] <- "foreclosure"
+levels(earlytgw$type)[grep("garden", levels(earlytgw$type))] <- "garden"
+levels(earlytgw$type)[grep("back",levels(earlytgw$type))] <- "bounced"
+levels(earlytgw$type)[grep("trouble finding",levels(earlytgw$type))] <- "bounced"
+levels(earlytgw$type)[grep("[tT]all", levels(earlytgw$type))] <- "TGW"
+levels(earlytgw$type)[grep("but", levels(earlytgw$type))] <- "TGW"
+levels(earlytgw$type)[grep("RGR", levels(earlytgw$type))] <- "mowed"
+levels(earlytgw$type)[c(24,10,9)] <- "mowed"
+levels(earlytgw$type)[c(16,13)] <- "common"
+levels(earlytgw$type)[c(18:21,15,16,10:12,6:8,4)] <- "TGW"
+
+
+earlytgw$Status[grep("[0-9]", earlytgw$Status)] <- "No Status"
+earlytgw$Status[grep("Closed", earlytgw$Status,ignore.case=TRUE)] <- "No Status" 
+earlytgw$Status[grep("n-a", earlytgw$Status)] <- "No Status"
+earlytgw$Status[earlytgw$Status=="no violation"] <- "No Violations Found"
+earlytgw$Status[earlytgw$Status=="No violation"] <- "No Violations Found"
+earlytgw$Status[earlytgw$Status=="unfounded"] <- "No Violations Found"
+earlytgw$Status[earlytgw$Status==""] <- "No Status"
+earlytgw$Status[earlytgw$Status=="Rosalyn"] <- "No Status"
+earlytgw$Status[earlytgw$Status=="Generate Sign Civil Penalty Notice"] <- "Sign Notice"
+
+
+
+tgwdate <- c(tgwdate12,tgwdate)[earlytgw$Source.of.Concern=="unknown"|earlytgw$Source.of.Concern=="citizen concern"]
+earlytgw <- earlytgw[earlytgw$Source.of.Concern=="unknown"|earlytgw$Source.of.Concern=="citizen concern",]
+breaksv <- as.Date(c("2011-04-01","2011-7-24","2011-09-01","2012-03-01","2012-07-24","2012-09-01","2012-12-1","2013-03-01","2013-07-24","2013-12-1"))
+era <- cut(unclass(tgwdate),unclass(breaksv),lab=FALSE)
+era <- as.factor(era)
+levels(era) <- c("2011pre","2011post","2012pre","2012post","2012xtended","2013pre","2013post","2013extended")
+era <- factor(era,levels=c("2011pre","2012pre","2013pre","2011post","2012post","2013post","2012xtended","2013extended"))
+earlytgw <- cbind(earlytgw,era)
+code$FilingDate <- as.Date(code$FilingDate, format="%m/%d/%Y %r")
+names(earlytgw)[names(earlytgw)=="tgwdate"] <- "FilingDate"
+earlytgw$FilingDate <- as.Date(earlytgw$FilingDate, format="%Y-%m-%d")
+names(earlytgw)[names(earlytgw)=="latitude"] <- "YWGS84"
+names(earlytgw)[names(earlytgw)=="longitude"] <- "XWGS84"
+ocode <- code[code$XWGS84!=-1,]#come back to this.
+```
+```{r, demographicfs, eval=TRUE, echo=FALSE, message=FALSE}
+if(system("whoami", intern=TRUE)=="lchen"){tigris_cache_dir("/Users/lchen/shared/yard/tigris/")} else{
+ tigris_cache_dir("/Volumes/shared/yard/tigris/") }
+readRenviron('~/.Renviron')
+options(tigris_use_cache = TRUE)
+
+burglatino2020 <- get_decennial(year=2020, geography="block", county="Harrisonburg", state="VA", variables=c("P2_002N","P2_003N","P2_004N","P2_005N","P2_006N","P2_007N","P2_008N","P2_009N"), summary_var = "P2_001N",geometry=TRUE, cache_table=TRUE) %>% mutate(percent=100*(value/summary_value))
+
+burgraceall2020 <- get_decennial(year=2020, geography="block", county="Harrisonburg", state="VA", variables=c("P1_002N","P1_003N","P1_004N","P1_005N","P1_006N","P1_007N","P1_008N","P1_009N"),summary_var="P1_001N",geometry=TRUE, cache_table=TRUE)
+
+burgraceall2020 <- burgraceall2020 %>% mutate(percent=100*(value/summary_value))
+tract_grass_sf <- filter(burgraceall2020, variable=="P1_003N")%>% mutate(wite=value-filter(burglatino2020, variable=="P2_005N")$value) %>% mutate(percent=100*(value/summary_value)) #white
+
+```
+
+```{r, spatial, echo=FALSE, message=FALSE}
+ 
+if(system("whoami", intern=TRUE)=="lchen")
+    setwd("/Users/lchen/shared/yard") else{
+                                          system("mount_smbfs lchen@172.16.0.7/share /Volumes/share")
+                                          setwd("/Volumes/shared/yard")}
+
+crs_utm <- st_crs(burgraceall2020)
+
+code_sp <- st_as_sf(code, coords = c("XWGS84", "YWGS84"), crs = crs_utm )
+earlytgw_sp <- st_as_sf(earlytgw, coords = c("XWGS84", "YWGS84"), crs = crs_utm )
+##https://jonathanduggins.com/data-matters (R slides)
+code_pz_sp <- filter(code_sp,Division=="P&Z") 
+#https://r-spatial.github.io/sf/articles/sf5.html
+code_pz_nuisance_sp <- filter(code_pz_sp, TypeName %in% c("Junk, Trash and Debris","Tall Grass and Weeds","Inoperable Vehicle","Signage"))
+code_pz_nuisance_sp <- bind_rows(code_pz_nuisance_sp, earlytgw_sp)
+code_pz_nuisance_sp <- within(code_pz_nuisance_sp, TypeName <-factor(TypeName, levels=names(sort(table(TypeName),decreasing=TRUE))))
+code_pz_nuisance_sp <- within(code_pz_nuisance_sp, Status <-factor(Status, levels=names(sort(table(Status),decreasing=TRUE))))
+
+```
+
+```{r, icons, echo=FALSE, message=FALSE }
+
+fontawesome::fa_png("building-wheat", fill=cbbPalette["blue"])
+system("mv building-wheat.png building-none.png")
+fontawesome::fa_png("car-side", fill="grey")
+fontawesome::fa_png("building-wheat")
+fontawesome::fa_png("trash", fill=cbbPalette["yellow"])
+fontawesome::fa_png("trash-can", fill=cbbPalette["yellow"])
+fontawesome::fa_png("couch", fill=cbbPalette["red"])
+building_wheat <- tmap_icons("building-wheat.png", height=12)
+building_none <- tmap_icons("building-none.png", height=12)
+car_side <- tmap_icons("car-side.png", height=12)
+trash <- tmap_icons("trash.png", height=12)
+trash_can <- tmap_icons("trash-can.png", height=12)
+couch <- tmap_icons("couch.png", height=12)
+
+```
+```{r, violation partitioning,  echo=FALSE, message=FALSE}
+##code_pz_nuisance_sp <- code_pz_nuisance_sp %>% filter(FilingDate > as.Date("2021-9-12"))
+grass <- code_pz_nuisance_sp %>% filter(TypeName=="Tall Grass and Weeds"&!Status%in% c("No Violations Found","No Status","Inspection"))
+
+nograss <- code_pz_nuisance_sp %>% filter(TypeName=="Tall Grass and Weeds"&Status%in% c("No Violations Found","No Status","Inspection"))
+
+junk <- code_pz_nuisance_sp %>% filter(TypeName=="Junk, Trash and Debris")
+couches <- junk[unlist(lapply(junk$Descr, str_detect, "ouch|urni|hair")),]
+
+jnk <- junk[!unlist(lapply(junk$Descr, str_detect, "ouch|urni|hair")),]
+nojnk <- jnk %>% filter(Status%in%c("No Violations Found","No Status","Inspection"))
+jnk <- jnk %>% filter(!Status%in%c("No Violations Found","No Status","Inspection"))
+cars <- code_pz_nuisance_sp %>% filter(TypeName=="Inoperable Vehicle")
+
+```
+
+```{r, 'main map setup', eval = TRUE, echo=FALSE, message=FALSE}
+tmap_mode("view")
+demographic <- tm_shape(tract_grass_sf, name="Percent Non-Latino White") +
+  tm_fill(
+    col = "percent",
+    palette = "-Greens",
+    style = "cont",
+    contrast = c(0.1, 1),
+    title = "Percent Non-Latino White",
+    id = "summary_value", #"GEOID",
+    popup.vars = c("percent","value","summary_value"),
+    showNA = FALSE,
+    alpha = 0.8) +
+    tm_borders(col = "darkgray", lwd = 0.7)
+
+```
+```{r, 'main map', echo=FALSE, message=FALSE , eval=TRUE}
+## fontawesome::fa_png("trash-can", fill=cbbPalette["yellow"])
+## to do as grassdot <- as_dot_density(value=) follow https://youtu.be/KMOTZij9qhU?t=9770 and tgw.R for tabling and left joining counts to polygons. 
+
+###tmap_mode("view")
+
+grassmap <- demographic +
+    tm_shape(grass, name="Tall Grass and Weed")+
+    tm_symbols(shape=building_wheat, id = "Status",
+               popup.vars = c("Origin") , size=.5, jitter=.3, alpha=.5)+
+    tm_shape(nograss, name="Unfounded Tall Grass and Weed")+
+    tm_symbols(shape=building_none, id = "Status",
+             popup.vars = c("Descr","Origin") ,size=.5, jitter=.3, alpha=.5) +
+    tm_shape(cars, name="Inoperable Vehicle")+
+    tm_symbols(shape=car_side, id = "Origin",
+             popup.vars = c("Descr","Status") , size=.5, jitter=.3) +
+    tm_shape(jnk, name="Junk, Trash and Debris")  +
+    tm_symbols( shape=trash, id = "Origin",
+             popup.vars = c("Status"), size=.5, jitter=.3) +
+    tm_shape(nojnk, name="Unfounded Junk, Trash and Debris")+
+    tm_symbols(shape=trash_can, id = "Origin",
+             popup.vars = c("Descr","Status") , size=.5, jitter=.3) +
+    tm_shape(couches, name="Couch on Porch") +
+    tm_symbols(shape=couch, id = "Origin",
+               popup.vars = c("Status"), size=.5, jitter=.3, alpha=.5) + tm_layout("Aesthetic nuisance complaints in Harrisonburg Virginia October 2017 - July 2022 \n jittered with error for privacy." )
+
+grassmap+ggtitle("Harrisonburg Aesthetic Nuisance Complaints", subtitle="Complaints 2011-2013, 2017-2022")
+```
+
+```{r, code analysis, echo=FALSE, message=FALSE}
+tgw <- code_pz_nuisance_sp
+
+tgw <- within(tgw, TypeName <-factor(TypeName, levels=names(sort(table(TypeName),decreasing=FALSE))))
+
+```
+## Code enforcement complaints over time.
+
+
+```{r widegraphss, message=FALSE, echo=FALSE, fig.width=12, fig.height=4}
+
+seasons <- as.Date(c("2011-4-1","2011-11-1","2012-4-1","2012-11-1","2013-4-1","2013-11-1","2014-4-1","2014-11-1","2015-4-1","2015-11-1","2016-4-1","2016-11-1","2017-4-1","2017-11-1","2018-4-1","2018-11-1","2019-4-1","2019-11-1","2020-4-1","2020-11-1","2021-4-1","2021-11-1","2022-4-1","2022-11-1"))
+
+ggplot(data=tgw, aes(x=FilingDate, y=Status), col=TypeName)+ geom_jitter(alpha=.5, pch=1) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m", breaks= seasons)+ggtitle("All Planning and Zoning enforcement status")+xlab("TGW enforcement season")
+
+ggplot(data=tgw, aes(x=as.Date(FilingDate,format="%m/%d/%Y %r"), fill=TypeName))+geom_histogram(binwidth=30, colour="white")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" , breaks= seasons)+ggtitle("All Planning and Zoning enforcement status")+xlab("TGW enforcement season")
+```
+
+```{r widegraphss TGW, message=FALSE, echo=FALSE, fig.width=12, fig.height=4}
+tgw <- tgw %>% filter(TypeName=="Tall Grass and Weeds")
+
+status_l <- c("No Violations Found", "No Status",  "Inspection", "Verbal Notice", "Tall Weeds and Grass Notice", "Correction Notice", "Return Receipt Rc'd", "Door Hanger", "2nd Notice - TGW", "Violations Remedied")
+status_l <- rev(status_l)
+
+tgw <- within(tgw, Status <- factor(Status, levels= status_l ))
+
+tgw %>%ggplot( aes(x=as.Date(FilingDate, format="%m/%d/%Y %r"), y=Status, col=Status))+ geom_jitter(alpha=.5, pch=1) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" ,breaks= seasons)+ggtitle("TGW enforcement status")+xlab("TGW enforcement season")
+
+tgw <- tgw %>% mutate(Status=relevel(Status, 8))
+
+## tgw <- within(tgw, Status <-factor(Status, levels=names(sort(table(Status),decreasing=FALSE))))
+
+ggplot(data=tgw, aes(x=as.Date(FilingDate,format="%m/%d/%Y %r"), fill=Status))+geom_histogram(binwidth=30, colour="white")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" ,breaks=seasons)+ggtitle("TGW enforcement status")+xlab("TGW enforcement season")+geom_vline(xintercept=as.Date("2013-8-13"), col=cbbPalette["red"])+geom_text(label="MLK Renaming",aes(as.Date("2013-8-13"), 40))
+```
+	
+## Sentiments toward natural yards in Harrisonburg
+
+```{r, 'survey', echo=FALSE, message=FALSE}
+##setwd("/Volumes/shared/yard/")
+nomow <- read.csv("nomow.csv")
+nomow$supports[nomow$supports==" yes"] <- "yes"
+nomow <- within(nomow, city <-factor(city , levels=names(sort(table(city),decreasing=TRUE))))
+nomow[c(73,114),"different"] <- ""
+with(nomow,table(supports))
+```
+
+On May 7, 2022, [WHSV](https://www.whsv.com/2022/05/06/no-mow-may-puts-lawnmower-pause-help-bees/) aired a story on No Mow May. On their [Facebook](https://www.facebook.com/WHSV.TV/posts/10159997517915336) page, they asked if viewers would consider participating in No Mow May. The `r sum(table(nomow$supports))` responses to the post were coded and analyzed. Notable features are that Harrisonburg overwhelmingly supported No Mow May with support of `r 100*(table(nomow$supports)["yes"]/sum(table(nomow$supports)))`%. Support in Harrisonburg featured acceptance of difference, whereas being different was viewed negatively outside Harrisonburg.
+
+```{r, 'survey analysis', echo=FALSE, message=FALSE}
+ggplot(data=nomow,aes(x=city, fill=supports))+ geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ggtitle("WHSV May 7 Facebook responses on No Mow May preference", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+
+ggplot(data=nomow %>% subset(supports=="yes"), aes(x=city, fill=different))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ggtitle("Difference theme by No Mow May supporters.", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+ggplot(data=nomow %>% subset(supports=="no"), aes(x=city, fill=different))+geom_bar()+theme(axis.text.x = element_text(an gle = 90, vjust = 0.5, hjust=1))+ggtitle("Difference theme by No Mow May opponents.", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+
+
+ggplot(data=nomow %>% subset(supports=="yes"), aes(x=city, fill=HOA))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ggtitle("HOA theme by No Mow May supporters.", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+ggplot(data=nomow %>% subset(supports=="no"), aes(x=city, fill=HOA))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ggtitle("HOA theme by No Mow May opponents.", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+
+
+
+ggplot(data=nomow %>% subset(supports=="yes"), aes(x=city, fill=laws))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ggtitle("Laws theme by No Mow May supporters", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+ggplot(data=nomow %>% subset(supports=="no"), aes(x=city, fill=laws))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ggtitle("Laws theme by No Mow May opponents", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+
+
+ggplot(data=nomow %>% subset(supports=="yes"), aes(x=city, fill=mowing))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ggtitle("Difficult to mow theme by No Mow May supporters", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+ggplot(data=nomow %>% subset(supports=="no"), aes(x=city, fill=mowing))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ggtitle("Difficult to mow theme by No Mow May opponents", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+
+
+ggplot(data=nomow %>% subset(supports=="yes"), aes(x=city, fill=critters))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ggtitle("Attract critters theme by No Mow May supporters", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+ggplot(data=nomow %>% subset(supports=="no"), aes(x=city, fill=critters))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ggtitle("Attract critters theme by No Mow May opponents", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+
+ggplot(data=nomow %>% subset(supports=="yes"), aes(x=city, fill=flowers))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ggtitle("Have flowers theme by No Mow May supporters", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+ggplot(data=nomow %>% subset(supports=="no"), aes(x=city, fill=flowers))+geom_bar()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ggtitle("Have flowers theme by No Mow May opponents", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+
+
+harrisonburg <- nomow %>% subset(city=="Harrisonburg")
+ggplot(data=harrisonburg, aes(x=supports, fill=different))+geom_bar() +ggtitle("Difference theme by No Mow May Harrisonburg residents", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+outsiders <- nomow %>% subset(city!="Harrisonburg")
+ggplot(data=outsiders, aes(x=supports, fill=different))+geom_bar() +ggtitle("Difference theme by No Mow May non-Harrisonburg residents", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+```
+	
