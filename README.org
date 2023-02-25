@@ -11,12 +11,12 @@ https://www.youtube.com/watch?v=lkIicfzPBys&ab_channel=SteveYegge
 https://www.youtube.com/watch?v=6ZWp05OW1c0
 
 *** Revision control
-[[https://git-scm.com/docs/gittutorial][
-Git Revision Control]]
-[[https://github.com/][
-GitHub]]
 
-**** Setting up and checking out the natural-yard repository
+[[https://git-scm.com/docs/gittutorial][Git Revision Control]]
+
+[[https://github.com/][GitHub]]
+
+**** Setting up the natural-yard repository
 
 After creating a GitHub account, statlive, we created a new project, natural-yard. Start by clicking the green "New" button in the root level of your GitHub account.
 [[./gitcreate.png]]
@@ -63,6 +63,8 @@ To github:statlive/natural-yard.git
 branch 'main' set up to track 'origin/main'.
 #+end_src
 
+**** Checking out the natural-yard repository
+
 You can now check out the repository with the command
 
 #+begin_src 
@@ -73,9 +75,9 @@ git clone https://github.com/statlive/natural-yard.git
 
 [[https://permits.harrisonburgva.gov/default.aspx][Harrisonburg Permit Site]]
 
-[[https://www.harrisonburgva.gov/GIS][Harrisonburg Geogrophic Information System]]
-[[https://www.inaturalist.org/][
-iNaturalist]]
+[[https://www.harrisonburgva.gov/GIS][Harrisonburg Geographic Information System]]
+
+[[https://www.inaturalist.org/][iNaturalist]]
 
 ** Code
 

@@ -1,26 +1,26 @@
 
 # Table of Contents
 
-1.  [Natural Yard Project](#org1213299)
-    1.  [Resources](#org1852bf2)
-        1.  [Emacs text editor](#org7af1af8)
-        2.  [Revision control](#org131cda6)
-    2.  [Data Lists](#org236fa5c)
-    3.  [Code](#orgf70b006)
-    4.  [Theory](#orgd7def74)
+1.  [Natural Yard Project](#org5a48fbc)
+    1.  [Resources](#org1fe7050)
+        1.  [Emacs text editor](#org56792aa)
+        2.  [Revision control](#org7b3ef26)
+    2.  [Data Lists](#orgf3f2394)
+    3.  [Code](#orge04496a)
+    4.  [Theory](#org0577827)
 
 
-<a id="org1213299"></a>
+<a id="org5a48fbc"></a>
 
 # Natural Yard Project
 
 
-<a id="org1852bf2"></a>
+<a id="org1fe7050"></a>
 
 ## Resources
 
 
-<a id="org7af1af8"></a>
+<a id="org56792aa"></a>
 
 ### Emacs text editor
 
@@ -33,16 +33,15 @@ How powerful Emacs can get:
 <https://www.youtube.com/watch?v=6ZWp05OW1c0>
 
 
-<a id="org131cda6"></a>
+<a id="org7b3ef26"></a>
 
 ### Revision control
 
-[
-Git Revision Control](https://git-scm.com/docs/gittutorial)
-[
-GitHub](https://github.com/)
+[Git Revision Control](https://git-scm.com/docs/gittutorial)
 
-1.  Setting up and checking out the natural-yard repository
+[GitHub](https://github.com/)
+
+1.  Setting up the natural-yard repository
 
     After creating a GitHub account, statlive, we created a new project, natural-yard. Start by clicking the green "New" button in the root level of your GitHub account.
     ![img](./gitcreate.png)
@@ -86,13 +85,15 @@ GitHub](https://github.com/)
         To github:statlive/natural-yard.git
          * [new branch]      main -> main
         branch 'main' set up to track 'origin/main'.
-    
+
+2.  Checking out the natural-yard repository
+
     You can now check out the repository with the command
     
         git clone https://github.com/statlive/natural-yard.git
 
 
-<a id="org236fa5c"></a>
+<a id="orgf3f2394"></a>
 
 ## Data Lists
 
@@ -103,14 +104,14 @@ GitHub](https://github.com/)
 [iNaturalist](https://www.inaturalist.org/)
 
 
-<a id="orgf70b006"></a>
+<a id="orge04496a"></a>
 
 ## Code
 
 Most of the commands and sources needed for working with the three lsts can be found in <./tgw.Rmd>
 
 
-<a id="orgd7def74"></a>
+<a id="org0577827"></a>
 
 ## Theory
 
