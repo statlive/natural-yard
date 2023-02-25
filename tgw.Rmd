@@ -44,12 +44,6 @@ using(libs)
 Next, we read in and clean the tall grass and weed complaints exported manually from the [Harrisonburg permitting website](https://permits.harrisonburgva.gov/) advanced search interface.
 
 ```{r, setup,  echo=FALSE, message=FALSE, cache=TRUE }
-
-## making sure the share volume is mounted if working in the office
-if(system("whoami", intern=TRUE)=="lchen")
-    setwd("/Users/lchen/shared/yard") else{
-                                          system("mount_smbfs lchen@172.16.0.7/share /Volumes/share")
-                                          setwd("/Volumes/shared/yard")}
 ## Reading in the files
 to418 <- read.csv("tgw/2022/exports/to418.csv")
 to1018 <- read.csv("tgw/2022/exports/to1018.csv")
@@ -63,18 +57,7 @@ to522 <- read.csv("tgw/2022/exports/to522.csv")
 to722 <- read.csv("tgw/2022/exports/to722.csv")
 to922 <- read.csv( "tgw/2022/exports/to922.csv")
 to1222 <- read.csv("tgw/2022/exports/to1222.csv")
-code <- rbind(to418,
-      to1018,
-      to1619,
-      to919,
-      to919,
-      to520,
-      to621,
-      to1121,
-      to522,
-      to722,
-      to922,
-      to1222)
+code <- rbind(to418,to1018, to1619, to919, to919, to520, to621, to1121, to522, to722, to922, to1222)
 code <- code[!duplicated(code),]
 
 ## Cleaining the raw data
@@ -82,74 +65,43 @@ drops <- c("IsDeleted","TotalFees","UnpaidFees","Value","CouncilDistrict","Next.
 code <- code[, !(names(code) %in% drops)]
 
 ## We need to fix various errors in the data. This includes geocoding
-## from addresses using https://www.gpsvisualizer.com/geocoding.html
-## and
-## https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=560%20Norwood%20St%20Harrisonburg%20Virginia&benchmark=4
+## from addresses using https://www.gpsvisualizer.com/geocoding.html  
 
 code[code$Location=="1552 Old Richmond Cir","Location"] <- "1252 Old Richmond Cir" 
 code[code$Location=="1556 Old Richmond Cir","Location"] <- "1256 Old Richmond Cir"
 code[code$Location=="0 Star Crest Dr","Location"] <- "1080 Starcrest Dr"
+code[code$Location=="0 Suter St","Location"] <- "121 Suter St"
 code[code$Location=="901 S High Street","Location"] <- "205 Sunrise Ave"
-code[code$Location=="205 Sunrise Ave", c("YWGS84","XWGS84")] <- c(38.441041699270514, -78.88489286387966)
 code[code$Location=="66 Pleasant Hill rd, 60 Pleasant Hill Rd","Location"] <- "66 Pleasant Hill Rd"
-code[code$Location=="66 Pleasant Hill Rd", c("YWGS84","XWGS84")] <- c(38.428048249736136, -78.89348158194454)
-code[code$Location=="1083 Lois Lane", c("YWGS84","XWGS84")] <- c(38.4165629683439, -78.87282929749068)
-code[code$Location=="371 W Water St -Apt B", c("YWGS84","XWGS84")] <- c(38.449331296072266 ,-78.87555135613829)
-code[1129,c("YWGS84","XWGS84")] <- c(38.445681504207094, -78.87579007681562)
 
-missings <- unique(c(code[code$XWGS84> -20|code$XWGS84< -1000, "Location" ],code[code$YWGS84> 2000|code$YWGS84< 30, "Location"]))
+code[code$Location=="313 Old South High St", c("YWGS84")] <- c(38.44580084334057)
+code[code$Location=="313 Old South High St", c("XWGS84")] <- c(-78.87584970859547)
+code[code$Location=="205 Sunrise Ave", c("YWGS84")] <- c(38.441041699270514)
+code[code$Location=="205 Sunrise Ave", c("XWGS84")] <- c(-78.88489286387966)
+code[code$Location=="66 Pleasant Hill Rd", c("YWGS84")] <- c(38.428048249736136)
+code[code$Location=="66 Pleasant Hill Rd", c("XWGS84")] <- c(-78.89348158194454)
+code[code$Location=="1083 Lois Lane", c("YWGS84")] <- c(38.4165629683439)
+code[code$Location=="1083 Lois Lane", c("XWGS84")] <- c(-78.87282929749068)
+code[code$Location=="371 W Water St -Apt B", c("YWGS84")] <- c(38.449331296072266)
+code[code$Location=="371 W Water St -Apt B", c("XWGS84")] <- c(-78.87555135613829)
 
+missings <- unique(rbind(code[code$XWGS84> -20|code$XWGS84< -1000, c("Location","City") ],code[code$YWGS84> 2000|code$YWGS84< 30, c("Location","City")]))
+missings$City <- "Harrisonburg"
+missings$State <- "VA"
+missings$Zip <- "22801"
 
-## Some of these coordinates have the final digit of precision
-## truncated because we used C-x r k to do a rectangular select in
-## emacs. We should probably fix this.
+write.csv(missings, file="missings.csv")
+## Submit missings.csv to https://geocoding.geo.census.gov/geocoder/locations/addressbatch?form
+## This will return GeocodeResults.csv to your downloads directory. Move it to your working directory and continue.
+GeocodeResults <- read.csv("GeocodeResults.csv",  skip=1, header=FALSE)
+GeocodeResults <- separate(GeocodeResults, col=c("V2"), sep=",", into=c("Location","City","State","Zip"), remove=TRUE, convert=TRUE)
+GeocodeResults <- separate(GeocodeResults, col=c("V6"), sep=",", into=c("XWGS84","YWGS84" ), remove=TRUE, convert=TRUE)
 
-code[code$Location==missings[1]  ,c("XWGS84")] <- -78.86329722699998
-code[code$Location==missings[2]  ,c("XWGS84")] <- -78.85689034099994
-code[code$Location==missings[3]  ,c("XWGS84")] <- -78.86860535299996
-code[code$Location==missings[4]  ,c("XWGS84")] <- -78.89740181099995
-code[code$Location==missings[5]  ,c("XWGS84")] <- -78.85792131799997
-code[code$Location==missings[6]  ,c("XWGS84")] <- -78.85720977999995
-code[code$Location==missings[7]  ,c("XWGS84")] <- -78.86409398899997
-code[code$Location==missings[8]  ,c("XWGS84")] <- -78.85405233399996
-code[code$Location==missings[9]  ,c("XWGS84")] <- -78.87034136799997
-code[code$Location==missings[10]  ,c("XWGS84")] <- -78.84623136199997
-code[code$Location==missings[11]  ,c("XWGS84")] <- -78.85982703299999
-code[code$Location==missings[12]  ,c("XWGS84")] <- -78.85703166499997
-code[code$Location==missings[13]  ,c("XWGS84")] <- -78.85408945199998
-code[code$Location==missings[14]  ,c("XWGS84")] <- -78.86749465599996
-code[code$Location==missings[15]  ,c("XWGS84")] <- -78.86590031799994
-code[code$Location==missings[16]  ,c("XWGS84")] <- -78.86904349499997
-code[code$Location==missings[17]  ,c("XWGS84")] <- -78.86708798299998
-code[code$Location==missings[18]  ,c("XWGS84")] <- -78.84802488399998
-code[code$Location==missings[19]  ,c("XWGS84")] <- -78.88383759299995
-code[code$Location==missings[20]  ,c("XWGS84")] <- -78.85106121699994
-code[code$Location==missings[21]  ,c("XWGS84")] <- -78.85103213899998
-code[code$Location==missings[22]  ,c("XWGS84")] <- -78.85100305999998
-code[code$Location==missings[23]  ,c("XWGS84")] <- -78.85097249099994
-code[code$Location==missings[1]  ,c("YWGS84")] <- 38.45395613300008
-code[code$Location==missings[2]  ,c("YWGS84")] <- 38.44490151800005
-code[code$Location==missings[3]  ,c("YWGS84")] <- 38.44351018100008
-code[code$Location==missings[4]  ,c("YWGS84")] <- 38.43486111000004
-code[code$Location==missings[5]  ,c("YWGS84")] <- 38.44475642100008
-code[code$Location==missings[6]  ,c("YWGS84")] <- 38.44486554200006
-code[code$Location==missings[7]  ,c("YWGS84")] <- 38.44107083600005
-code[code$Location==missings[8]  ,c("YWGS84")] <- 38.43851355400005
-code[code$Location==missings[9]  ,c("YWGS84")] <- 38.45439405000007
-code[code$Location==missings[10]  ,c("YWGS84")] <-38.43408279400006
-code[code$Location==missings[11]  ,c("YWGS84")] <-38.44930966600003
-code[code$Location==missings[12]  ,c("YWGS84")] <-38.44295990600005
-code[code$Location==missings[13]  ,c("YWGS84")] <-38.42154672500004
-code[code$Location==missings[14]  ,c("YWGS84")] <-38.44512364500008
-code[code$Location==missings[15]  ,c("YWGS84")] <-38.45973579700006
-code[code$Location==missings[16]  ,c("YWGS84")] <-38.44763803900002
-code[code$Location==missings[17]  ,c("YWGS84")] <-38.44506554800006
-code[code$Location==missings[18]  ,c("YWGS84")] <-38.44624103700005
-code[code$Location==missings[19]  ,c("YWGS84")] <-38.45194733000005
-code[code$Location==missings[20]  ,c("YWGS84")] <-38.45884121100005
-code[code$Location==missings[21]  ,c("YWGS84")] <-38.45880061000002
-code[code$Location==missings[22]  ,c("YWGS84")] <-38.45876001000005
-code[code$Location==missings[23]  ,c("YWGS84")] <-38.45872046200003
+for (i in 1:dim(missings)[1]){
+code[code$Location==missings[i,"Location"], c("XWGS84")] <- GeocodeResults[GeocodeResults$Location==missings[i,"Location"], c("XWGS84")]
+code[code$Location==missings[i,"Location"], c("YWGS84")] <- GeocodeResults[GeocodeResults$Location==missings[i,"Location"], c("YWGS84")]
+}
+
 code[code$Status=="","Status"] <- "No Status"
 code[code$Status=="2nd Notice - Tall Weeds and Grass", "Status"] <- "2nd Notice - TGW"
 code[code$Guid== "a4571e39-ab32-4e00-908b-da17f1237d60","Status"] <- "No Violations Found"
@@ -168,12 +120,12 @@ privacy <- unique(c(tenants,privacy))
 code[privacy,"Descr"] <- unlist(lapply(code[privacy,"Descr"], gsub, pattern="[0-9]+?", replacement="x"))
 code <- code %>% filter( Guid!="661f722c-936e-4bd1-a974-eb37663b0a45"& Guid!="11b32ee3-b20f-49fa-87ac-621f9e00ab30")
 ```
-
 We next read in historical tall grass and weed complaints which were
 collected prior to the Department of Community Development switching
 to its current data system, and clean the data so it can be merged.
 
 ```{r, early tgw, echo=FALSE, message=FALSE, cache=FALSE}
+
 tgwraw13 <- read.csv("tgwraw13.csv")
 geocoded12 <- read.csv("addresses.csv")
 geocoded13 <- read.csv("addresses13.csv")
@@ -197,7 +149,6 @@ earlytgw <- bind_rows(tgw12,earlytgw)
 
 names(earlytgw)[match("tgwfull$Comments",colnames(earlytgw))] <- "type"
 names(earlytgw)[match("Violation.Status.Open.Closed",colnames(earlytgw))] <- "Status"
-##earlytgw <- bind_rows(earlytgw,tgw12)
 earlytgw$TypeName <- "Tall Grass and Weeds"
 earlytgw$type <- earlytgw$Comments
 earlytgw$type <- as.factor(earlytgw$type)
@@ -243,7 +194,6 @@ names(earlytgw)[names(earlytgw)=="tgwdate"] <- "FilingDate"
 earlytgw$FilingDate <- as.Date(earlytgw$FilingDate, format="%Y-%m-%d")
 names(earlytgw)[names(earlytgw)=="latitude"] <- "YWGS84"
 names(earlytgw)[names(earlytgw)=="longitude"] <- "XWGS84"
-ocode <- code[code$XWGS84!=-1,]#come back to this.
 ```
 
 We next load demographic data and shape files [that we learned to pull from the Census Bureau](https://github.com/walkerke/umich-workshop-2022). 
@@ -251,9 +201,6 @@ Other sources include plotting [using google maps](https://rpubs.com/nickbearman
 
 
 ```{r, demographicfs, eval=TRUE, echo=FALSE, message=FALSE}
-if(system("whoami", intern=TRUE)=="lchen"){tigris_cache_dir("/Users/lchen/shared/yard/tigris/")} else{
- tigris_cache_dir("/Volumes/shared/yard/tigris/") }
-readRenviron('~/.Renviron')
 options(tigris_use_cache = TRUE)
 
 burglatino2020 <- get_decennial(year=2020, geography="block", county="Harrisonburg", state="VA", variables=c("P2_002N","P2_003N","P2_004N","P2_005N","P2_006N","P2_007N","P2_008N","P2_009N"), summary_var = "P2_001N",geometry=TRUE, cache_table=TRUE) %>% mutate(percent=100*(value/summary_value))
@@ -270,11 +217,6 @@ We then use [Jonathan Duggins' tutorial](https://jonathanduggins.com/data-matter
 
 ```{r, spatial, echo=FALSE, message=FALSE}
  
-if(system("whoami", intern=TRUE)=="lchen")
-    setwd("/Users/lchen/shared/yard") else{
-                                          system("mount_smbfs lchen@172.16.0.7/share /Volumes/share")
-                                          setwd("/Volumes/shared/yard")}
-
 crs_utm <- st_crs(burgraceall2020)
 code_sp <- st_as_sf(code, coords = c("XWGS84", "YWGS84"), crs = crs_utm )
 earlytgw_sp <- st_as_sf(earlytgw, coords = c("XWGS84", "YWGS84"), crs = crs_utm )
@@ -316,7 +258,7 @@ jnk <- junk[!unlist(lapply(junk$Descr, str_detect, "ouch|urni|hair")),]
 nojnk <- jnk %>% filter(Status%in%c("No Violations Found","No Status","Inspection"))
 jnk <- jnk %>% filter(!Status%in%c("No Violations Found","No Status","Inspection"))
 cars <- code_pz_nuisance_sp %>% filter(TypeName=="Inoperable Vehicle")
-
+write.csv(grass, "grasslist.csv") # To be used for capture/recapture study.
 ```
 
 We create the main map with the tmap package.
@@ -402,7 +344,6 @@ ggplot(data=tgw, aes(x=as.Date(FilingDate,format="%m/%d/%Y %r"), fill=Status))+g
 ## Sentiments toward natural yards in Harrisonburg
 
 ```{r, 'survey', echo=FALSE, message=FALSE}
-##setwd("/Volumes/shared/yard/")
 nomow <- read.csv("nomow.csv")
 nomow$supports[nomow$supports==" yes"] <- "yes"
 nomow <- within(nomow, city <-factor(city , levels=names(sort(table(city),decreasing=TRUE))))
