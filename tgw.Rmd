@@ -258,7 +258,7 @@ jnk <- junk[!unlist(lapply(junk$Descr, str_detect, "ouch|urni|hair")),]
 nojnk <- jnk %>% filter(Status%in%c("No Violations Found","No Status","Inspection"))
 jnk <- jnk %>% filter(!Status%in%c("No Violations Found","No Status","Inspection"))
 cars <- code_pz_nuisance_sp %>% filter(TypeName=="Inoperable Vehicle")
-write.csv(grass, "grasslist.csv") # To be used for capture/recapture study.
+write.csv(code_pz_nuisance_sp %>% filter(TypeName=="Tall Grass and Weeds"), "grasslist.csv") # To be used for capture/recapture study.
 ```
 
 We create the main map with the tmap package.
