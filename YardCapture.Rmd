@@ -1,0 +1,37 @@
+---
+Title: Yard Capture
+date: 
+---
+
+```{r,}
+
+## https://datacarpentry.org/r-raster-vector-geospatial/06-vector-open-shapefile-in-r/
+tgwlist <- st_read("grasslist2.shp")
+parcels <- st_read("ParcelBoundaries/ParcelBoundariesByMAPBLOLOT.shp")
+parcels <- parcels %>% rename("Locatin"="ParcelAddr")
+bmplist <- read.csv("ApplicantInformationDatabase.csv")
+bmplist <- bmplist %>% rename("Locatin"="X..Parcel.Street.Address1..")
+inaturalist <- read.csv("inaturalist-265817.csv")
+inaturalist_sp <- st_as_sf(inaturalist, coords = c("longitude", "latitude"), crs = st_crs(tgwlist))
+inaturalist_sp <- st_transform(inaturalist_sp, crs=st_crs(parcels))
+tgwlist <- st_transform(tgwlist, crs=st_crs(parcels))
+
+tgwi <- st_intersects(parcels,tgwlist)
+parcelstgw <- parcels[lengths(tgwi)>0,] # for plotting 
+
+##st_intersection(parcels,inaturalist_sp)
+inat <- st_intersects(parcels,inaturalist_sp) 
+parcelsinat <- parcels[lengths(inat)>0,] # to add Locatin 
+
+sum(tolower(bmplist$Locatin) %in% tolower(parcelsinat$Locatin))
+sum(tolower(tgwlist$Locatin) %in% tolower(parcelsinat$Locatin))
+sum(tolower(tgwlist$Locatin) %in% tolower(bmplist$Locatin))
+sum(tolower(tgwlist$Locatin) %in% tolower(bmplist$Locatin)&tolower(tgwlist$Locatin) %in% tolower(parcelsinat$Locatin))
+```
+
+```{r,}
+ggplot() + 
+  geom_sf(data = parcelsinat, size = 3, color = "black", fill = "cyan1") + 
+  ggtitle("Parcels") + 
+  coord_sf()
+```
