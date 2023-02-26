@@ -63,7 +63,7 @@ code <- code[!duplicated(code),]
 ## Cleaining the raw data
 drops <- c("IsDeleted","TotalFees","UnpaidFees","Value","CouncilDistrict","Next.Compliance.Date","CanPayFees","UserFavID","UserID","FavType","FavID","IsActive","IsDeleted1","ContactID","CanEdit","CanView","CanRenew","NeedAccept","Next.Hearing.Date","Last.Hearing.Date","LU_JurisdictionID","IsPublic","PubicDocCount","IsLockedExt", "IsLockedInt","Fav")
 code <- code[, !(names(code) %in% drops)]
-
+code <- mutate(code, FilingDate=as.Date(code$FilingDate, format="%m/%d/%Y %r"))
 ## We need to fix various errors in the data. This includes geocoding
 ## from addresses using https://www.gpsvisualizer.com/geocoding.html  
 
@@ -125,36 +125,38 @@ collected prior to the Department of Community Development switching
 to its current data system, and clean the data so it can be merged.
 
 ```{r, early tgw, echo=FALSE, message=FALSE, cache=FALSE}
-
-tgwraw13 <- read.csv("tgwraw13.csv")
-geocoded12 <- read.csv("addresses.csv")
-geocoded13 <- read.csv("addresses13.csv")
-tgwfull <- cbind(tgwraw13,geocoded13)
-tgwfull <- tgwfull[tgwfull$Source=="citizen concern",]
 tgw12 <- read.csv("tgw2.csv")
-tgw12 <- cbind(tgw12,"unknown")
-colnames(tgw12)[dim(tgw12)[2]] <- "Source.of.Concern"
+tgw12 <- mutate(tgw12, Date.Received=as.Date(Date.Received))
+tgw12 <- tgw12 %>% rename("Location"="Address")
+tgw12 <- tgw12 %>% rename("Status"="Violation.Status.Open.Closed")
+tgw12 <- tgw12 %>% rename("FilingDate"="Date.Received")
+tgw12$Source.of.Concern <- "unknown"
 levels(tgw12$Source.of.Concern) <- c("unknown","proactive")
 tgw12$Source.of.Concern[c(130:133,122,120,114,115)] <- "proactive"
-tgwdate12 <- as.Date(tgw12$Date.Received)
-tgwdate <- as.Date(tgwfull$Date.Received,"%m-%d-%Y")
 
-tgw12$X <- tgwdate12
-colnames(tgw12)[1] <- "tgwdate"
-tgw12 <- cbind(tgw12,tgw12$Comments)
-colnames(tgw12)[19] <- "tgwfull$Comments"
+tgwraw13 <- read.csv("tgwraw13.csv")
+tgwraw13 <- tgwraw13 %>% rename("Location"="Address")
+tgwraw13 <- tgwraw13 %>% rename("Status"="Violation.Status.Open.Closed")
+tgwraw13 <- mutate(tgwraw13, Date.Received=as.Date(tgwraw13$Date.Received,"%m-%d-%Y"))
+tgwraw13 <- tgwraw13 %>% rename("FilingDate"="Date.Received")
+## geocoded12 <- read.csv("addresses.csv")
+## ## https://cran.r-project.org/web/packages/stringr/vignettes/regular-expressions.html
+## geocoded12 <- separate(geocoded12, col="name", sep="\\sHarrisonburg", into=c("Location","name") )
+geocoded13 <- read.csv("addresses13.csv")
+geocoded13 <- separate(geocoded13, col="name", sep="\\sHarrisonburg", into=c("Location","name") )
+tgw13 <- left_join(tgwraw13, geocoded13[,c("Location","latitude","longitude")], by="Location")
+##tgw13 <- tgw13[tgw13$Source=="citizen concern",] # for natural yards, interested in staff inspection as well
 
-earlytgw <- cbind(tgwdate,tgwfull,tgwfull$Comments)
-earlytgw <- bind_rows(tgw12,earlytgw)
+earlytgw <- bind_rows(tgw12[,names(tgw13)],tgw13)
 
-names(earlytgw)[match("tgwfull$Comments",colnames(earlytgw))] <- "type"
-names(earlytgw)[match("Violation.Status.Open.Closed",colnames(earlytgw))] <- "Status"
+##names(earlytgw)[match("tgwfull$Comments",colnames(earlytgw))] <- "type"
+##names(earlytgw)[match("Violation.Status.Open.Closed",colnames(earlytgw))] <- "Status"
 earlytgw$TypeName <- "Tall Grass and Weeds"
 earlytgw$type <- earlytgw$Comments
 earlytgw$type <- as.factor(earlytgw$type)
 levels(earlytgw$type)[grep("[mb]ul[tp][it][pi]le", levels(earlytgw$type))] <- "group"
 levels(earlytgw$type)[grep("unk", levels(earlytgw$type))] <- "junk"
-levels(earlytgw$type)[grep("inop", levels(earlytgw$type))] <- "junk"
+levels(earlytgw$type)[grep("inop", levels(earlytgw$type))] <- "car"
 levels(earlytgw$type)[grep("oreclo", levels(earlytgw$type))] <- "foreclosure"
 levels(earlytgw$type)[grep("bank owned", levels(earlytgw$type))] <- "foreclosure"
 levels(earlytgw$type)[grep("asset company", levels(earlytgw$type))] <- "foreclosure"
@@ -181,19 +183,19 @@ earlytgw$Status[earlytgw$Status=="Generate Sign Civil Penalty Notice"] <- "Sign 
 
 
 
-tgwdate <- c(tgwdate12,tgwdate)[earlytgw$Source.of.Concern=="unknown"|earlytgw$Source.of.Concern=="citizen concern"]
-earlytgw <- earlytgw[earlytgw$Source.of.Concern=="unknown"|earlytgw$Source.of.Concern=="citizen concern",]
+## tgwdate <- earlytgw$FilingDate[earlytgw$Source.of.Concern=="unknown"|earlytgw$Source.of.Concern=="citizen concern"]
+## earlytgw <- earlytgw[earlytgw$Source.of.Concern=="unknown"|earlytgw$Source.of.Concern=="citizen concern",]
 breaksv <- as.Date(c("2011-04-01","2011-7-24","2011-09-01","2012-03-01","2012-07-24","2012-09-01","2012-12-1","2013-03-01","2013-07-24","2013-12-1"))
-era <- cut(unclass(tgwdate),unclass(breaksv),lab=FALSE)
+era <- cut(unclass(earlytgw$FilingDate),unclass(breaksv),lab=FALSE)
 era <- as.factor(era)
 levels(era) <- c("2011pre","2011post","2012pre","2012post","2012xtended","2013pre","2013post","2013extended")
 era <- factor(era,levels=c("2011pre","2012pre","2013pre","2011post","2012post","2013post","2012xtended","2013extended"))
-earlytgw <- cbind(earlytgw,era)
-code$FilingDate <- as.Date(code$FilingDate, format="%m/%d/%Y %r")
-names(earlytgw)[names(earlytgw)=="tgwdate"] <- "FilingDate"
-earlytgw$FilingDate <- as.Date(earlytgw$FilingDate, format="%Y-%m-%d")
-names(earlytgw)[names(earlytgw)=="latitude"] <- "YWGS84"
-names(earlytgw)[names(earlytgw)=="longitude"] <- "XWGS84"
+earlytgw$era <- era
+
+earlytgw <- earlytgw %>% rename("Origin"="Source.of.Concern")
+earlytgw <- earlytgw %>% rename("Descr"="Comments")
+earlytgw <- earlytgw %>% rename("YWGS84"="latitude")
+earlytgw <- earlytgw %>% rename("XWGS84"="longitude")
 ```
 
 We next load demographic data and shape files [that we learned to pull from the Census Bureau](https://github.com/walkerke/umich-workshop-2022). 
@@ -208,7 +210,7 @@ burglatino2020 <- get_decennial(year=2020, geography="block", county="Harrisonbu
 burgraceall2020 <- get_decennial(year=2020, geography="block", county="Harrisonburg", state="VA", variables=c("P1_002N","P1_003N","P1_004N","P1_005N","P1_006N","P1_007N","P1_008N","P1_009N"),summary_var="P1_001N",geometry=TRUE, cache_table=TRUE)
 
 burgraceall2020 <- burgraceall2020 %>% mutate(percent=100*(value/summary_value))
-tract_grass_sf <- filter(burgraceall2020, variable=="P1_003N")%>% mutate(wite=value-filter(burglatino2020, variable=="P2_005N")$value) %>% mutate(percent=100*(value/summary_value)) #white
+tract_grass_sf <- filter(burgraceall2020, variable=="P1_003N")%>% mutate(white=value-filter(burglatino2020, variable=="P2_005N")$value) %>% mutate(percent=100*(value/summary_value)) #white
 
 ```
 
