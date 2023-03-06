@@ -31,6 +31,7 @@ using(libs)
 ```
 
 
+
 ```{r,}
 
 ## https://datacarpentry.org/r-raster-vector-geospatial/06-vector-open-shapefile-in-r/
@@ -65,7 +66,62 @@ sum(tolower(tgwlist$Locatin) %in% tolower(bmplist$Locatin)&tolower(tgwlist$Locat
 
 ```{r,}
 ggplot() + 
-  geom_sf(data = parcelsinat, size = 3, color = "black", fill = "cyan1") + 
+  geom_sf(data = parcelstgw[tolower(tgwlist$Locatin) %in% tolower(parcelsinat$Locatin),], size = 3, color = "black", fill = "cyan1") + 
   ggtitle("Parcels") + 
   coord_sf()
+```
+
+```{r, 'main map setup', eval = TRUE, echo=FALSE, message=FALSE}
+tmap_options(check.and.fix = TRUE)
+tmap_mode("view")
+tgwinat <- tm_shape(parcelstgw[tolower(parcelstgw$Locatin)%in%tolower(parcelsinat$Locatin),], name="inaturalist tgw lawns") +
+  tm_fill(
+    col = "Acres",
+    palette = "-Greens",
+    style = "cont",
+    contrast = c(0.1, 1),
+    title = "Inaturalist TGW violations",
+    id = "summary_value", #"GEOID",
+    popup.vars = c("Owner","SqFeet","Locatin"),
+    showNA = FALSE,
+    alpha = 0.8) +
+    tm_borders(col = "darkgray", lwd = 0.7)
+tgwbmp <- tm_shape(parcelstgw[tolower(parcelstgw$Locatin)%in%tolower(bmplist$Locatin),], name="bmp tgw lawns") +
+  tm_fill(
+    col = "Acres",
+    palette = "-Greens",
+    style = "cont",
+    contrast = c(0.1, 1),
+    title = "Bmp TGW violations",
+    id = "summary_value", #"GEOID",
+    popup.vars = c("Owner","SqFeet","Locatin"),
+    showNA = FALSE,
+    alpha = 0.8) +
+    tm_borders(col = "darkgray", lwd = 0.7)
+bmpinat <- tm_shape(parcelsinat[tolower(parcelsinat$Locatin)%in%tolower(bmplist$Locatin),], name="bmp inaturalist lawns") +
+  tm_fill(
+    col = "Acres",
+    palette = "-Greens",
+    style = "cont",
+    contrast = c(0.1, 1),
+    title = "Bmp Inaturalist lawns",
+    id = "summary_value", #"GEOID",
+    popup.vars = c("Owner","SqFeet","Locatin"),
+    showNA = FALSE,
+    alpha = 0.8) +
+    tm_borders(col = "darkgray", lwd = 0.7)
+
+bmpinattgw <- tm_shape(parcelsinat[tolower(parcelsinat$Locatin)%in%tolower(bmplist$Locatin)&tolower(parcelsinat$Locatin)%in%tolower(parcelstgw$Locatin),], name="bmp inaturalist tgw lawns") +
+  tm_fill(
+    col = "Acres",
+    palette = "-Greens",
+    style = "cont",
+    contrast = c(0.1, 1),
+    title = "Bmp Inaturalist tgw lawns",
+    id = "summary_value", #"GEOID",
+    popup.vars = c("Owner","SqFeet","Locatin"),
+    showNA = FALSE,
+    alpha = 0.8) +
+    tm_borders(col = "darkgray", lwd = 0.7)
+
 ```
