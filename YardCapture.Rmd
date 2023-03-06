@@ -3,6 +3,34 @@ Title: Yard Capture
 date: 
 ---
 
+```{r, "libraries",  echo=FALSE, message=FALSE }
+## We select an accessible color pallate with black:
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+names(cbbPalette) <- c("black","orange","sky","green","yellow","blue","red","pink")
+
+
+## https://stackoverflow.com/questions/4090169/elegant-way-to-check-for-missing-packages-and-install-them
+r = getOption("repos") 
+r["CRAN"] = "http://lib.stat.cmu.edu/R/CRAN/" 
+options(repos = r)
+rm(r)
+
+using <- function(...) {
+    libs<-unlist(list(...))
+    req<-unlist(lapply(libs,require,character.only=TRUE))
+    need<-libs[req==FALSE]
+    if(length(need)>0){ 
+        install.packages(need)
+        lapply(need,require,character.only=TRUE)
+    }
+}
+
+libs <- c("Hmisc","tidyverse","dplyr","clock","tigris","ClusterR","cluster","ggmap","ggplot2","rvest","showtext","sp","sf","tidycensus","tmap","icons","fontawesome")
+using(libs)
+```
+
+
+
 ```{r,}
 
 ## https://datacarpentry.org/r-raster-vector-geospatial/06-vector-open-shapefile-in-r/
