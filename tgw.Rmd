@@ -234,7 +234,8 @@ code_pz_nuisance_sp <- within(code_pz_nuisance_sp, Status <-factor(Status, level
 We next load icon fonts for plotting features onto our maps.
 
 ```{r, icons, echo=FALSE, message=FALSE }
-
+install.packages("rsvg")
+library(rsvg)
 fontawesome::fa_png("building-wheat", fill=cbbPalette["blue"])
 system("mv building-wheat.png building-none.png")
 fontawesome::fa_png("car-side", fill="grey")
@@ -316,35 +317,6 @@ tgw <- code_pz_nuisance_sp
 tgw <- within(tgw, TypeName <-factor(TypeName, levels=names(sort(table(TypeName),decreasing=FALSE))))
 
 ```
-## Code enforcement complaints over time.
-
-
-```{r widegraphss, message=FALSE, echo=FALSE, fig.width=12, fig.height=4}
-
-seasons <- as.Date(c("2011-4-1","2011-11-1","2012-4-1","2012-11-1","2013-4-1","2013-11-1","2014-4-1","2014-11-1","2015-4-1","2015-11-1","2016-4-1","2016-11-1","2017-4-1","2017-11-1","2018-4-1","2018-11-1","2019-4-1","2019-11-1","2020-4-1","2020-11-1","2021-4-1","2021-11-1","2022-4-1","2022-11-1"))
-
-ggplot(data=tgw, aes(x=FilingDate, y=Status), col=TypeName)+ geom_jitter(alpha=.5, pch=1) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m", breaks= seasons)+ggtitle("All Planning and Zoning enforcement status")+xlab("TGW enforcement season")
-
-ggplot(data=tgw, aes(x=as.Date(FilingDate,format="%m/%d/%Y %r"), fill=TypeName))+geom_histogram(binwidth=30, colour="white")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" , breaks= seasons)+ggtitle("All Planning and Zoning enforcement status")+xlab("TGW enforcement season")
-```
-
-```{r widegraphss TGW, message=FALSE, echo=FALSE, fig.width=12, fig.height=4}
-tgw <- tgw %>% filter(TypeName=="Tall Grass and Weeds")
-
-status_l <- c("No Violations Found", "No Status",  "Inspection", "Verbal Notice", "Tall Weeds and Grass Notice", "Correction Notice", "Return Receipt Rc'd", "Door Hanger", "2nd Notice - TGW", "Violations Remedied")
-status_l <- rev(status_l)
-
-tgw <- within(tgw, Status <- factor(Status, levels= status_l ))
-
-tgw %>%ggplot( aes(x=as.Date(FilingDate, format="%m/%d/%Y %r"), y=Status, col=Status))+ geom_jitter(alpha=.5, pch=1) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" ,breaks= seasons)+ggtitle("TGW enforcement status")+xlab("TGW enforcement season")
-
-tgw <- tgw %>% mutate(Status=relevel(Status, 8))
-
-## tgw <- within(tgw, Status <-factor(Status, levels=names(sort(table(Status),decreasing=FALSE))))
-
-ggplot(data=tgw, aes(x=as.Date(FilingDate,format="%m/%d/%Y %r"), fill=Status))+geom_histogram(binwidth=30, colour="white")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" ,breaks=seasons)+ggtitle("TGW enforcement status")+xlab("TGW enforcement season")+geom_vline(xintercept=as.Date("2013-8-13"), col=cbbPalette["red"])+geom_text(label="MLK Renaming",aes(as.Date("2013-8-13"), 40))
-```
-	
 ## Sentiments toward natural yards in Harrisonburg
 
 ```{r, 'survey', echo=FALSE, message=FALSE}
@@ -388,5 +360,34 @@ harrisonburg <- nomow %>% subset(city=="Harrisonburg")
 ggplot(data=harrisonburg, aes(x=supports, fill=different))+geom_bar() +ggtitle("Difference theme by No Mow May Harrisonburg residents", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
 outsiders <- nomow %>% subset(city!="Harrisonburg")
 ggplot(data=outsiders, aes(x=supports, fill=different))+geom_bar() +ggtitle("Difference theme by No Mow May non-Harrisonburg residents", subtitle="https://www.facebook.com/WHSV.TV/posts/10159997517915336")
+```
+	
+## Code enforcement complaints over time.
+
+
+```{r widegraphss, message=FALSE, echo=FALSE, fig.width=12, fig.height=4}
+
+seasons <- as.Date(c("2011-4-1","2011-11-1","2012-4-1","2012-11-1","2013-4-1","2013-11-1","2014-4-1","2014-11-1","2015-4-1","2015-11-1","2016-4-1","2016-11-1","2017-4-1","2017-11-1","2018-4-1","2018-11-1","2019-4-1","2019-11-1","2020-4-1","2020-11-1","2021-4-1","2021-11-1","2022-4-1","2022-11-1"))
+
+ggplot(data=tgw, aes(x=FilingDate, y=Status), col=TypeName)+ geom_jitter(alpha=.5, pch=1) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m", breaks= seasons)+ggtitle("All Planning and Zoning enforcement status")+xlab("TGW enforcement season")
+
+ggplot(data=tgw, aes(x=as.Date(FilingDate,format="%m/%d/%Y %r"), fill=TypeName))+geom_histogram(binwidth=30, colour="white")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" , breaks= seasons)+ggtitle("All Planning and Zoning enforcement status")+xlab("TGW enforcement season")
+```
+
+```{r widegraphss TGW, message=FALSE, echo=FALSE, fig.width=12, fig.height=4}
+tgw <- tgw %>% filter(TypeName=="Tall Grass and Weeds")
+
+status_l <- c("No Violations Found", "No Status",  "Inspection", "Verbal Notice", "Tall Weeds and Grass Notice", "Correction Notice", "Return Receipt Rc'd", "Door Hanger", "2nd Notice - TGW", "Violations Remedied")
+status_l <- rev(status_l)
+
+tgw <- within(tgw, Status <- factor(Status, levels= status_l ))
+
+tgw %>%ggplot( aes(x=as.Date(FilingDate, format="%m/%d/%Y %r"), y=Status, col=Status))+ geom_jitter(alpha=.5, pch=1) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" ,breaks= seasons)+ggtitle("TGW enforcement status")+xlab("TGW enforcement season")
+
+tgw <- tgw %>% mutate(Status=relevel(Status, 8))
+
+## tgw <- within(tgw, Status <-factor(Status, levels=names(sort(table(Status),decreasing=FALSE))))
+
+ggplot(data=tgw, aes(x=as.Date(FilingDate,format="%m/%d/%Y %r"), fill=Status))+geom_histogram(binwidth=30, colour="white")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_date( minor_breaks="year", date_labels="%y-%m" ,breaks=seasons)+ggtitle("TGW enforcement status")+xlab("TGW enforcement season")+geom_vline(xintercept=as.Date("2013-8-13"), col=cbbPalette["red"])+geom_text(label="MLK Renaming",aes(as.Date("2013-8-13"), 40))
 ```
 	

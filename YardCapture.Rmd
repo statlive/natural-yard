@@ -58,10 +58,32 @@ parcelstgw <- parcels[lengths(tgwi)>0,] # for plotting
 inat <- st_intersects(parcels,inaturalist_sp) 
 parcelsinat <- parcels[lengths(inat)>0,] # to add Locatin 
 
-sum(tolower(bmplist$Locatin) %in% tolower(parcelsinat$Locatin))
-sum(tolower(tgwlist$Locatin) %in% tolower(parcelsinat$Locatin))
-sum(tolower(tgwlist$Locatin) %in% tolower(bmplist$Locatin))
-sum(tolower(tgwlist$Locatin) %in% tolower(bmplist$Locatin)&tolower(tgwlist$Locatin) %in% tolower(parcelsinat$Locatin))
+length(unique(tolower(tgwlist$Locatin)))
+length(unique(tolower(bmplist$Locatin)))
+length(unique(tolower(parcelsinat$Locatin)))
+
+sum(unique(tolower(tgwlist$Locatin)) %in% unique(tolower(bmplist$Locatin)))
+sum(unique(tolower(tgwlist$Locatin)) %in% unique(tolower(parcelsinat$Locatin)))
+sum(unique(tolower(bmplist$Locatin)) %in% unique(tolower(parcelsinat$Locatin)))
+
+
+
+
+sum(!(unique(tolower(bmplist$Locatin)) %in% unique(tolower(parcelsinat$Locatin))))
+sum(!(unique(tolower(tgwlist$Locatin)) %in% unique(tolower(parcelsinat$Locatin))))
+sum(!(unique(tolower(tgwlist$Locatin)) %in% unique(tolower(bmplist$Locatin))))
+
+
+sum(unique(tolower(tgwlist$Locatin)) %in% unique(tolower(bmplist$Locatin))&unique(tolower(tgwlist$Locatin)) %in% unique(tolower(parcelsinat$Locatin)))
+
+
+count=c(6,27,55,861,32,385,891,NA)
+ tgw=c(1,1,1,1,0,0,0,0)
+ bmp=c(1,1,0,0,1,1,0,0)
+ nature=c(1,0,1,0,1,0,1,0)
+ out=glm(count~tgw+bmp+nature,family=poisson)
+ summary(out)
+ exp(out$coefficients[1]) # estimate of total 
 ```
 
 ```{r,}
